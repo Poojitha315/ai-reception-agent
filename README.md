@@ -1,3 +1,7 @@
+## 🔗 Live Demo
+
+Try the hosted version here:  
+👉 https://ai-reception-agent-awru2f8dgliv6arvuezqhu.streamlit.app/
 # 📞 AI Reception Agent – Call Transcription & Smart Logging
 An intelligent virtual receptionist that transcribes call recordings, extracts key details using AI, and manages a searchable call log dashboard.
 
@@ -216,4 +220,5 @@ Groq Llama 3
 SQLAlchemy
 
 Open-source community
+
 

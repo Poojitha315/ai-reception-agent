@@ -5,7 +5,7 @@ from typing import Dict, Any
 
 from groq import Groq
 
-# Create Groq client using your API key
+# Create Groq client using your API key from env
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 
@@ -41,14 +41,15 @@ def analyze_call(transcript: str) -> Dict[str, Any]:
     Analyze a call transcript using Llama 3 on Groq.
     Returns a dictionary with structured fields.
     """
+
     system_prompt = (
         "You are an AI assistant that extracts structured information from call transcripts "
         "for a reception/call-center scenario. "
-        "Always respond with a **valid JSON object only**, no extra text.\n\n"
-        "The JSON should have these keys:\n"
+        "Always respond with a valid JSON object only, with no extra text.\n\n"
+        "The JSON must have these keys:\n"
         "- caller_name (string or empty)\n"
         "- phone (string, digits only if possible, or empty)\n"
-        "- department (string, like 'Support', 'Sales', 'Billing', etc.)\n"
+        "- department (string like 'Support', 'Sales', 'Billing', etc.)\n"
         "- priority (one of: Low, Medium, High)\n"
         "- summary (1–2 sentence summary of the call)\n"
         "- response (a short suggested response for the receptionist)\n"
@@ -56,8 +57,9 @@ def analyze_call(transcript: str) -> Dict[str, Any]:
 
     user_prompt = f"Here is the call transcript:\n\n{transcript}\n\nExtract the fields as JSON."
 
+    # 🔁 IMPORTANT CHANGE: use a current Groq model
     chat = client.chat.completions.create(
-        model="llama3-8b-8192",
+        model="llama-3.1-8b-instant",   # <- new supported model
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
@@ -67,7 +69,7 @@ def analyze_call(transcript: str) -> Dict[str, Any]:
 
     content = chat.choices[0].message.content.strip()
 
-    # Sometimes the model might wrap JSON in ```json ... ``` → clean it
+    # Clean possible ```json ... ``` wrapping
     if content.startswith("```"):
         content = content.strip("`")
         if content.lower().startswith("json"):
@@ -76,7 +78,7 @@ def analyze_call(transcript: str) -> Dict[str, Any]:
     try:
         data = json.loads(content)
     except json.JSONDecodeError:
-        # Very defensive fallback: wrap entire text as summary
+        # Fallback: if JSON parsing fails, still return something useful
         data = {
             "caller_name": "",
             "phone": "",
@@ -86,7 +88,7 @@ def analyze_call(transcript: str) -> Dict[str, Any]:
             "response": content,
         }
 
-    # Normalize fields a bit
+    # Normalize priority
     data["priority"] = (data.get("priority") or "Medium").capitalize()
 
     return data
